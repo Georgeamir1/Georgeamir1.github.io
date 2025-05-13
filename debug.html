@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Debug Flutter Web</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+    }
+    h1 {
+      color: #0175C2;
+    }
+    pre {
+      background-color: #f5f5f5;
+      padding: 10px;
+      border-radius: 5px;
+      overflow-x: auto;
+    }
+    button {
+      background-color: #0175C2;
+      color: white;
+      border: none;
+      padding: 10px 15px;
+      border-radius: 5px;
+      cursor: pointer;
+      margin-bottom: 10px;
+    }
+    #console {
+      margin-top: 20px;
+      border: 1px solid #ddd;
+      padding: 10px;
+      min-height: 200px;
+      background-color: #f9f9f9;
+    }
+  </style>
+</head>
+<body>
+  <h1>Flutter Web Debug Helper</h1>
+  <button id="checkFiles">Check Files</button>
+  <button id="checkConsole">Check Console Errors</button>
+  <div id="console"></div>
+
+  <script>
+    const consoleOutput = document.getElementById('console');
+    
+    // Override console methods to capture output
+    const originalConsole = {
+      log: console.log,
+      error: console.error,
+      warn: console.warn,
+      info: console.info
+    };
+    
+    function appendToConsole(type, args) {
+      const line = document.createElement('pre');
+      line.textContent = `[${type}] ${Array.from(args).join(' ')}`;
+      if (type === 'error') {
+        line.style.color = 'red';
+      } else if (type === 'warn') {
+        line.style.color = 'orange';
+      }
+      consoleOutput.appendChild(line);
+    }
+    
+    console.log = function() {
+      appendToConsole('log', arguments);
+      originalConsole.log.apply(console, arguments);
+    };
+    
+    console.error = function() {
+      appendToConsole('error', arguments);
+      originalConsole.error.apply(console, arguments);
+    };
+    
+    console.warn = function() {
+      appendToConsole('warn', arguments);
+      originalConsole.warn.apply(console, arguments);
+    };
+    
+    console.info = function() {
+      appendToConsole('info', arguments);
+      originalConsole.info.apply(console, arguments);
+    };
+    
+    document.getElementById('checkFiles').addEventListener('click', async () => {
+      consoleOutput.innerHTML = '';
+      
+      // Check critical files
+      const filesToCheck = [
+        'flutter.js',
+        'flutter_bootstrap.js',
+        'main.dart.js',
+        'flutter_service_worker.js',
+        'canvaskit/canvaskit.js',
+        'canvaskit/canvaskit.wasm'
+      ];
+      
+      for (const file of filesToCheck) {
+        try {
+          const response = await fetch(file);
+          if (response.ok) {
+            console.log(`✅ ${file} - Found (${response.status})`);
+          } else {
+            console.error(`❌ ${file} - Not found (${response.status})`);
+          }
+        } catch (e) {
+          console.error(`❌ ${file} - Error: ${e.message}`);
+        }
+      }
+    });
+    
+    document.getElementById('checkConsole').addEventListener('click', () => {
+      consoleOutput.innerHTML = '';
+      
+      console.log('Checking for Flutter initialization...');
+      
+      if (window._flutter) {
+        console.log('✅ _flutter object exists');
+        console.log('_flutter contents:', JSON.stringify(window._flutter, null, 2));
+      } else {
+        console.error('❌ _flutter object does not exist');
+      }
+      
+      // Try to load flutter.js manually
+      const script = document.createElement('script');
+      script.src = 'flutter.js';
+      script.onload = () => {
+        console.log('✅ flutter.js loaded manually');
+        if (window._flutter && window._flutter.loader) {
+          console.log('✅ _flutter.loader exists');
+          
+          // Check if buildConfig exists
+          if (window._flutter.buildConfig) {
+            console.log('✅ buildConfig exists:', JSON.stringify(window._flutter.buildConfig, null, 2));
+          } else {
+            console.error('❌ buildConfig is missing');
+          }
+        } else {
+          console.error('❌ _flutter.loader does not exist after loading flutter.js');
+        }
+      };
+      script.onerror = (e) => {
+        console.error('❌ Failed to load flutter.js manually:', e);
+      };
+      document.head.appendChild(script);
+    });
+  </script>
+</body>
+</html>
