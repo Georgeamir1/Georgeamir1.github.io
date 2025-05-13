@@ -25,6 +25,7 @@ class _HomeScreenState extends State<HomeScreen> {
   final contactKey = GlobalKey(debugLabel: 'contactKey');
 
   // Add a ScrollController
+  // Add a ScrollController
   final ScrollController _scrollController = ScrollController();
 
   void _scrollToSection(String section) {
